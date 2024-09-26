@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>42 Students' Global Food Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-400 via-purple-500 to-indigo-500 min-h-screen">
+    <div class="container mx-auto p-4">
+        <h1 class="text-4xl font-bold text-white text-center mb-4">42 Students' Global Food Guide</h1>
+        <p class="text-xl text-white text-center mb-8">
+            This website allows 42 students from around the world to share their favorite local restaurants near their campuses. 
+            You can discover the best places to eat, recommended by 42 students in different countries.
+        </p>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Add Restaurant</h2>
+            <form id="restaurantForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Campus</label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-indigo-600" name="campus" value="42Bangkok" required>
+                            <span class="ml-2">42Bangkok</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-indigo-600" name="campus" value="42KL" required>
+                            <span class="ml-2">42KL</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-indigo-600" name="campus" value="42Seoul" required>
+                            <span class="ml-2">42Seoul</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-indigo-600" name="campus" value="42SG" required>
+                            <span class="ml-2">42SG</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-indigo-600" name="campus" value="42Tokyo" required>
+                            <span class="ml-2">42Tokyo</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Restaurant Name</label>
+                    <input type="text" id="name" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" id="location" name="location" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="mapLink" class="block text-sm font-medium text-gray-700">Google Maps Link</label>
+                    <input type="url" id="mapLink" name="mapLink" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <p class="mt-1 text-sm text-gray-500">Paste a Google Maps link to automatically fill the location</p>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Add Restaurant</button>
+            </form>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4">Map</h2>
+                <div id="map" class="h-96 w-full"></div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4">Restaurants in View</h2>
+                <ul id="restaurantList" class="space-y-2"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([20, 100], 4);  // Centered on Southeast Asia
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const restaurants = [];
+        const markers = [];
+
+        const campusCoordinates = {
+            '42Bangkok': [13.7563, 100.5018],
+            '42KL': [3.1412, 101.6865],
+            '42Seoul': [37.5665, 126.9780],
+            '42SG': [1.3521, 103.8198],
+            '42Tokyo': [35.6762, 139.6503]
+        };
+
+        // Custom icons
+        const campusIcon = L.icon({
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        const restaurantIcon = L.icon({
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        // Add campus markers
+        for (const [campus, coordinates] of Object.entries(campusCoordinates)) {
+            L.marker(coordinates, {icon: campusIcon}).addTo(map).bindPopup(campus);
+        }
+
+        document.getElementById('mapLink').addEventListener('input', function(e) {
+            const link = e.target.value;
+            const coordinates = extractCoordinates(link);
+            if (coordinates) {
+                document.getElementById('location').value = `${coordinates.lat}, ${coordinates.lng}`;
+            }
+        });
+
+        function extractCoordinates(link) {
+            const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+            const match = link.match(regex);
+            if (match) {
+                return {
+                    lat: parseFloat(match[1]),
+                    lng: parseFloat(match[2])
+                };
+            }
+            return null;
+        }
+
+        document.getElementById('restaurantForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const location = document.getElementById('location').value;
+            const campus = document.querySelector('input[name="campus"]:checked').value;
+            const mapLink = document.getElementById('mapLink').value;
+            
+            let lat, lng;
+            const coordinates = extractCoordinates(mapLink);
+            if (coordinates) {
+                lat = coordinates.lat;
+                lng = coordinates.lng;
+            } else {
+                [lat, lng] = location.split(',').map(coord => parseFloat(coord.trim()));
+            }
+            
+            restaurants.push({ name, location, campus, lat, lng });
+            addMarker({ name, lat, lng });
+            updateRestaurantList();
+            
+            document.getElementById('name').value = '';
+            document.getElementById('location').value = '';
+            document.getElementById('mapLink').value = '';
+            document.querySelector('input[name="campus"]:checked').checked = false;
+        });
+
+        function addMarker(restaurant) {
+            const marker = L.marker([restaurant.lat, restaurant.lng], {icon: restaurantIcon}).addTo(map);
+            marker.bindPopup(restaurant.name);
+            markers.push(marker);
+        }
+
+        function updateRestaurantList() {
+            const bounds = map.getBounds();
+            const list = document.getElementById('restaurantList');
+            list.innerHTML = '';
+            
+            restaurants.forEach(restaurant => {
+                if (bounds.contains([restaurant.lat, restaurant.lng])) {
+                    const li = document.createElement('li');
+                    li.textContent = `${restaurant.name} - ${restaurant.location} (${restaurant.campus})`;
+                    li.className = 'p-2 bg-gray-100 rounded';
+                    list.appendChild(li);
+                }
+            });
+        }
+
+        map.on('moveend', updateRestaurantList);
+    </script>
+</body>
+</html>
